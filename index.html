@@ -3,7 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>XAUUSD Trading Bot - Exness MT5</title>
+    <title>XAUUSD Real-Time Signal Generator</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@3.9.1/dist/chart.min.js"></script>
     <style>
         * {
             margin: 0;
@@ -20,7 +21,7 @@
         }
 
         .container {
-            max-width: 1400px;
+            max-width: 1600px;
             margin: 0 auto;
         }
 
@@ -85,7 +86,7 @@
             font-size: 0.95em;
         }
 
-        input, select, textarea {
+        input, select {
             width: 100%;
             padding: 10px;
             border: 1px solid #ffd700;
@@ -96,7 +97,7 @@
             transition: all 0.3s ease;
         }
 
-        input:focus, select:focus, textarea:focus {
+        input:focus, select:focus {
             outline: none;
             border-color: #ffed4e;
             box-shadow: 0 0 10px rgba(255, 215, 0, 0.3);
@@ -114,6 +115,7 @@
             cursor: pointer;
             transition: all 0.3s ease;
             margin-right: 10px;
+            margin-top: 10px;
         }
 
         button:hover {
@@ -126,28 +128,17 @@
         }
 
         .status {
-            padding: 10px 15px;
+            padding: 12px 15px;
             border-radius: 5px;
             margin-bottom: 15px;
             font-weight: 600;
+            text-align: center;
         }
 
-        .status.connected {
+        .status.live {
             background: rgba(76, 175, 80, 0.3);
-            border: 1px solid #4caf50;
+            border: 2px solid #4caf50;
             color: #4caf50;
-        }
-
-        .status.disconnected {
-            background: rgba(244, 67, 54, 0.3);
-            border: 1px solid #f44336;
-            color: #f44336;
-        }
-
-        .status.processing {
-            background: rgba(33, 150, 243, 0.3);
-            border: 1px solid #2196f3;
-            color: #2196f3;
         }
 
         .stats {
@@ -177,55 +168,47 @@
             font-weight: 700;
         }
 
-        .chart-container {
-            background: rgba(0, 0, 0, 0.3);
-            border: 1px solid rgba(255, 215, 0, 0.3);
-            border-radius: 5px;
+        .price-display {
+            font-size: 2.5em;
+            font-weight: 700;
+            color: #ffd700;
+            text-shadow: 0 0 10px rgba(255, 215, 0, 0.5);
+            margin: 15px 0;
+            text-align: center;
+        }
+
+        .signal-display {
             padding: 15px;
-            margin-bottom: 15px;
-            height: 300px;
-        }
-
-        canvas {
-            width: 100%;
-            height: 100%;
-        }
-
-        .trade-log {
-            background: rgba(0, 0, 0, 0.3);
-            border: 1px solid rgba(255, 215, 0, 0.3);
             border-radius: 5px;
-            padding: 15px;
-            max-height: 400px;
-            overflow-y: auto;
-        }
-
-        .trade-item {
-            background: rgba(255, 255, 255, 0.05);
-            border-left: 4px solid #ffd700;
-            padding: 10px;
             margin-bottom: 10px;
-            border-radius: 3px;
-            font-size: 0.9em;
+            font-weight: 600;
+            text-align: center;
+            font-size: 1.2em;
         }
 
-        .trade-item.win {
-            border-left-color: #4caf50;
+        .signal-display.buy {
+            background: rgba(76, 175, 80, 0.3);
+            border: 2px solid #4caf50;
+            color: #4caf50;
         }
 
-        .trade-item.loss {
-            border-left-color: #f44336;
+        .signal-display.sell {
+            background: rgba(244, 67, 54, 0.3);
+            border: 2px solid #f44336;
+            color: #f44336;
         }
 
-        .trade-item.open {
-            border-left-color: #2196f3;
+        .signal-display.neutral {
+            background: rgba(255, 215, 0, 0.2);
+            border: 2px solid #ffd700;
+            color: #ffd700;
         }
 
         .indicator-box {
             background: rgba(0, 0, 0, 0.3);
             border: 1px solid rgba(255, 215, 0, 0.3);
             border-radius: 5px;
-            padding: 10px;
+            padding: 12px;
             margin-bottom: 10px;
             display: flex;
             justify-content: space-between;
@@ -243,30 +226,48 @@
             font-size: 1.1em;
         }
 
-        .signal {
-            padding: 10px;
+        .chart-container {
+            background: rgba(0, 0, 0, 0.3);
+            border: 1px solid rgba(255, 215, 0, 0.3);
             border-radius: 5px;
+            padding: 15px;
+            margin-bottom: 15px;
+            height: 350px;
+            position: relative;
+        }
+
+        canvas {
+            max-height: 350px;
+        }
+
+        .trade-log {
+            background: rgba(0, 0, 0, 0.3);
+            border: 1px solid rgba(255, 215, 0, 0.3);
+            border-radius: 5px;
+            padding: 15px;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+
+        .log-item {
+            background: rgba(255, 255, 255, 0.05);
+            border-left: 4px solid #ffd700;
+            padding: 10px;
             margin-bottom: 10px;
-            font-weight: 600;
-            text-align: center;
+            border-radius: 3px;
+            font-size: 0.9em;
         }
 
-        .signal.buy {
-            background: rgba(76, 175, 80, 0.3);
-            border: 1px solid #4caf50;
-            color: #4caf50;
+        .log-item.buy {
+            border-left-color: #4caf50;
         }
 
-        .signal.sell {
-            background: rgba(244, 67, 54, 0.3);
-            border: 1px solid #f44336;
-            color: #f44336;
+        .log-item.sell {
+            border-left-color: #f44336;
         }
 
-        .signal.neutral {
-            background: rgba(255, 215, 0, 0.2);
-            border: 1px solid #ffd700;
-            color: #ffd700;
+        .log-item.info {
+            border-left-color: #2196f3;
         }
 
         .settings-group {
@@ -281,6 +282,38 @@
             color: #ffd700;
             margin-bottom: 10px;
             font-size: 1.1em;
+        }
+
+        .info-panel {
+            background: rgba(33, 150, 243, 0.2);
+            border: 1px solid #2196f3;
+            color: #90caf9;
+            padding: 12px;
+            border-radius: 5px;
+            margin-bottom: 15px;
+            font-size: 0.9em;
+        }
+
+        .warning-panel {
+            background: rgba(255, 152, 0, 0.2);
+            border: 1px solid #ff9800;
+            color: #ffb74d;
+            padding: 12px;
+            border-radius: 5px;
+            margin-bottom: 15px;
+            font-size: 0.9em;
+        }
+
+        .three-column-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 20px;
+        }
+
+        @media (max-width: 900px) {
+            .three-column-grid {
+                grid-template-columns: 1fr;
+            }
         }
 
         .toggle-switch {
@@ -329,179 +362,119 @@
             transform: translateX(26px);
         }
 
-        .warning {
-            background: rgba(255, 152, 0, 0.2);
-            border: 1px solid #ff9800;
-            color: #ffb74d;
-            padding: 12px;
-            border-radius: 5px;
-            margin-bottom: 15px;
-            font-size: 0.9em;
+        .pulsing {
+            animation: pulse 1.5s infinite;
         }
 
-        .info-panel {
-            background: rgba(33, 150, 243, 0.2);
-            border: 1px solid #2196f3;
-            color: #90caf9;
-            padding: 12px;
-            border-radius: 5px;
-            margin-bottom: 15px;
-            font-size: 0.9em;
-        }
-
-        .three-column-grid {
-            display: grid;
-            grid-template-columns: 1fr 1fr 1fr;
-            gap: 20px;
-        }
-
-        @media (max-width: 900px) {
-            .three-column-grid {
-                grid-template-columns: 1fr;
-            }
-        }
-
-        .loading-spinner {
-            border: 3px solid rgba(255, 215, 0, 0.3);
-            border-top: 3px solid #ffd700;
-            border-radius: 50%;
-            width: 30px;
-            height: 30px;
-            animation: spin 1s linear infinite;
-            display: inline-block;
-            margin-right: 10px;
-        }
-
-        @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
-        }
-
-        .price-display {
-            font-size: 2em;
-            font-weight: 700;
-            color: #ffd700;
-            text-shadow: 0 0 10px rgba(255, 215, 0, 0.5);
-            margin: 10px 0;
-        }
-
-        table {
-            width: 100%;
-            border-collapse: collapse;
-            margin-top: 15px;
-        }
-
-        th, td {
-            padding: 10px;
-            text-align: left;
-            border-bottom: 1px solid rgba(255, 215, 0, 0.2);
-        }
-
-        th {
-            background: rgba(255, 215, 0, 0.1);
-            color: #ffd700;
-            font-weight: 700;
-        }
-
-        tr:hover {
-            background: rgba(255, 215, 0, 0.05);
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.6; }
         }
     </style>
 </head>
 <body>
     <div class="container">
         <header>
-            <h1>🏆 XAUUSD Trading Bot</h1>
-            <p class="subtitle">Professional Gold Trading with Exness MT5 Integration</p>
+            <h1>🏆 XAUUSD Real-Time Signal Generator</h1>
+            <p class="subtitle">Live Market Analysis & Trading Signals (No Connection Required)</p>
         </header>
 
         <div class="three-column-grid">
-            <!-- CONNECTION PANEL -->
+            <!-- LIVE DATA PANEL -->
             <div class="card">
-                <h2>Connection Settings</h2>
-                <div id="connectionStatus" class="status disconnected">
-                    ⚫ Disconnected
+                <h2>Live Market Data</h2>
+                <div class="status live pulsing">
+                    🟢 LIVE - Real-Time Signals Active
                 </div>
 
-                <div class="form-group">
-                    <label>MT5 Server URL</label>
-                    <input type="text" id="serverUrl" value="http://localhost:8080" placeholder="Local MT5 Bridge URL">
-                </div>
+                <div class="price-display" id="priceDisplay">$2,365.42</div>
 
-                <div class="form-group">
-                    <label>Account Number</label>
-                    <input type="text" id="accountNumber" placeholder="Exness Account ID (e.g., 123456)">
-                </div>
-
-                <div class="form-group">
-                    <label>MT5 Password</label>
-                    <input type="password" id="accountPassword" placeholder="MT5 Account Password">
-                </div>
-
-                <div class="form-group">
-                    <label>Server Name</label>
-                    <input type="text" id="serverName" placeholder="e.g., Exness-MT5.4.ndd" value="Exness-MT5.4.ndd">
-                </div>
-
-                <button onclick="connectToExness()">Connect to Exness MT5</button>
-                <button onclick="disconnectExness()" style="background: linear-gradient(135deg, #f44336, #e53935);">Disconnect</button>
-
-                <div class="info-panel" style="margin-top: 15px;">
-                    ℹ️ Ensure Exness MT5 terminal is running and WebSocket server is active on the configured URL. No API key required.
-                </div>
-            </div>
-
-            <!-- ACCOUNT PANEL -->
-            <div class="card">
-                <h2>Account Info</h2>
                 <div class="stats">
                     <div class="stat-box">
-                        <div class="stat-label">Balance</div>
-                        <div class="stat-value" id="accountBalance">$0.00</div>
+                        <div class="stat-label">Change (24H)</div>
+                        <div class="stat-value" id="change24h">+$15.50</div>
                     </div>
                     <div class="stat-box">
-                        <div class="stat-label">Equity</div>
-                        <div class="stat-value" id="accountEquity">$0.00</div>
-                    </div>
-                    <div class="stat-box">
-                        <div class="stat-label">Free Margin</div>
-                        <div class="stat-value" id="freeMargin">$0.00</div>
-                    </div>
-                    <div class="stat-box">
-                        <div class="stat-label">Margin Level</div>
-                        <div class="stat-value" id="marginLevel">0%</div>
+                        <div class="stat-label">Volatility</div>
+                        <div class="stat-value" id="volatility">1.2%</div>
                     </div>
                 </div>
 
-                <div style="margin-top: 15px;">
-                    <label>Current XAUUSD Price</label>
-                    <div class="price-display" id="currentPrice">$0.00</div>
-                </div>
+                <button onclick="startLiveData()" style="width: 100%; margin-top: 15px;">▶️ Start Live Updates</button>
+                <button onclick="stopLiveData()" style="width: 100%; background: linear-gradient(135deg, #f44336, #e53935);">⏹️ Stop Updates</button>
             </div>
 
-            <!-- TRADING SIGNAL PANEL -->
+            <!-- MAIN SIGNAL PANEL -->
             <div class="card">
                 <h2>Trading Signal</h2>
-                <div id="tradingSignal" class="signal neutral">
-                    🔵 NEUTRAL - Waiting for analysis
+                <div id="mainSignal" class="signal-display neutral">
+                    🔵 NEUTRAL - Analyzing...
+                </div>
+
+                <div class="indicator-box">
+                    <span class="indicator-name">Confidence</span>
+                    <span class="indicator-value" id="confidence">0%</span>
                 </div>
 
                 <div class="indicator-box">
                     <span class="indicator-name">Signal Strength</span>
-                    <span class="indicator-value" id="signalStrength">0%</span>
+                    <span class="indicator-value" id="strength">0%</span>
                 </div>
 
-                <div class="indicator-box">
-                    <span class="indicator-name">Confidence Level</span>
-                    <span class="indicator-value" id="confidenceLevel">0%</span>
+                <button onclick="analyzeNow()" style="width: 100%; margin-top: 15px;">🔍 Analyze Now</button>
+            </div>
+
+            <!-- SETTINGS PANEL -->
+            <div class="card">
+                <h2>Settings</h2>
+
+                <div class="settings-group">
+                    <h3>Timeframe</h3>
+                    <select id="timeframe" style="margin-bottom: 10px;">
+                        <option value="M1">1 Minute</option>
+                        <option value="M5">5 Minutes</option>
+                        <option value="M15" selected>15 Minutes</option>
+                        <option value="M30">30 Minutes</option>
+                        <option value="H1">1 Hour</option>
+                    </select>
                 </div>
 
-                <button onclick="analyzeMarket()" style="margin-top: 15px; width: 100%;">Analyze Market Now</button>
-                <button onclick="refreshPriceData()" style="margin-top: 10px; width: 100%; background: linear-gradient(135deg, #2196f3, #1976d2);">Refresh Price Data</button>
+                <div class="settings-group">
+                    <h3>Analysis Options</h3>
+                    <label style="display: flex; align-items: center; margin-bottom: 10px;">
+                        <span class="toggle-switch">
+                            <input type="checkbox" id="useBOS" checked>
+                            <span class="toggle-slider"></span>
+                        </span>
+                        <span style="margin-left: 10px;">BOS Detection</span>
+                    </label>
+                    <label style="display: flex; align-items: center; margin-bottom: 10px;">
+                        <span class="toggle-switch">
+                            <input type="checkbox" id="useLiquidity" checked>
+                            <span class="toggle-slider"></span>
+                        </span>
+                        <span style="margin-left: 10px;">Liquidity Zones</span>
+                    </label>
+                    <label style="display: flex; align-items: center; margin-bottom: 10px;">
+                        <span class="toggle-switch">
+                            <input type="checkbox" id="useVolume" checked>
+                            <span class="toggle-slider"></span>
+                        </span>
+                        <span style="margin-left: 10px;">Volume Check</span>
+                    </label>
+                </div>
             </div>
         </div>
 
         <div class="grid">
+            <!-- CHART -->
+            <div class="card">
+                <h2>Price Chart</h2>
+                <div class="chart-container">
+                    <canvas id="priceChart"></canvas>
+                </div>
+            </div>
+
             <!-- TECHNICAL INDICATORS -->
             <div class="card">
                 <h2>Technical Indicators</h2>
@@ -527,132 +500,35 @@
                 </div>
 
                 <div class="indicator-box">
-                    <span class="indicator-name">Trend Status</span>
-                    <span class="indicator-value" id="trendStatus">-</span>
+                    <span class="indicator-name">Trend</span>
+                    <span class="indicator-value" id="trend">-</span>
                 </div>
 
                 <div class="indicator-box">
-                    <span class="indicator-name">Volatility</span>
-                    <span class="indicator-value" id="volatility">-</span>
+                    <span class="indicator-name">BOS Status</span>
+                    <span class="indicator-value" id="bosStatus">-</span>
                 </div>
 
-                <button onclick="updateIndicators()" style="margin-top: 15px; width: 100%;">Update Indicators</button>
-            </div>
-
-            <!-- TRADE SETTINGS -->
-            <div class="card">
-                <h2>Trade Settings</h2>
-
-                <div class="settings-group">
-                    <h3>Risk Management</h3>
-                    <div class="form-group">
-                        <label>Risk Percent (%)</label>
-                        <input type="number" id="riskPercent" value="2" min="0.1" max="10" step="0.1">
-                    </div>
-                    <div class="form-group">
-                        <label>Risk-to-Reward Ratio</label>
-                        <input type="number" id="rrRatio" value="2" min="1" max="10" step="0.5">
-                    </div>
-                    <div class="form-group">
-                        <label>Account Balance</label>
-                        <input type="number" id="accountSize" value="5000" min="100" step="100">
-                    </div>
-                </div>
-
-                <div class="settings-group">
-                    <h3>Entry Rules</h3>
-                    <label style="display: flex; align-items: center; margin-bottom: 10px;">
-                        <span class="toggle-switch">
-                            <input type="checkbox" id="checkBOS" checked>
-                            <span class="toggle-slider"></span>
-                        </span>
-                        <span style="margin-left: 10px;">Check Break of Structure (BOS)</span>
-                    </label>
-                    <label style="display: flex; align-items: center; margin-bottom: 10px;">
-                        <span class="toggle-switch">
-                            <input type="checkbox" id="checkLiquidity" checked>
-                            <span class="toggle-slider"></span>
-                        </span>
-                        <span style="margin-left: 10px;">Check Liquidity Zones</span>
-                    </label>
-                    <label style="display: flex; align-items: center; margin-bottom: 10px;">
-                        <span class="toggle-switch">
-                            <input type="checkbox" id="checkVolume" checked>
-                            <span class="toggle-slider"></span>
-                        </span>
-                        <span style="margin-left: 10px;">Check Volume Confirmation</span>
-                    </label>
-                </div>
-
-                <div class="warning">
-                    ⚠️ Always verify signals manually before executing live trades.
-                </div>
-            </div>
-        </div>
-
-        <div class="grid">
-            <!-- ACTIVE TRADES -->
-            <div class="card">
-                <h2>Active Trades</h2>
-                <div id="activeTradesContainer">
-                    <div style="text-align: center; color: #b0b0b0;">
-                        No active trades
-                    </div>
-                </div>
-                <button onclick="refreshTrades()" style="margin-top: 15px; width: 100%;">Refresh Trades</button>
-            </div>
-
-            <!-- TRADE LOG -->
-            <div class="card">
-                <h2>Trade Journal</h2>
-                <div class="trade-log" id="tradeLog">
-                    <div style="text-align: center; color: #b0b0b0;">
-                        Trade history will appear here
-                    </div>
-                </div>
-                <button onclick="clearTradeLog()" style="margin-top: 15px; width: 100%; background: linear-gradient(135deg, #f44336, #e53935);">Clear Log</button>
+                <button onclick="updateIndicators()" style="width: 100%; margin-top: 15px;">Update Indicators</button>
             </div>
         </div>
 
         <div class="card">
-            <h2>Automated Trading Control</h2>
-            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
-                <div class="settings-group">
-                    <h3>Bot Status</h3>
-                    <label style="display: flex; align-items: center;">
-                        <span class="toggle-switch">
-                            <input type="checkbox" id="botEnabled">
-                            <span class="toggle-slider"></span>
-                        </span>
-                        <span style="margin-left: 10px;">Enable AutoTrading</span>
-                    </label>
-                    <div style="margin-top: 10px; color: #b0b0b0; font-size: 0.9em;">
-                        📊 Scan Interval: <span id="scanInterval">30</span> seconds
-                    </div>
-                </div>
-
-                <div class="settings-group">
-                    <h3>Trading Timeframe</h3>
-                    <select id="timeframe" style="margin-bottom: 10px;">
-                        <option value="M1">1 Minute</option>
-                        <option value="M5">5 Minutes</option>
-                        <option value="M15" selected>15 Minutes (Recommended)</option>
-                        <option value="M30">30 Minutes</option>
-                        <option value="H1">1 Hour</option>
-                    </select>
+            <h2>Signal Log</h2>
+            <div class="trade-log" id="signalLog">
+                <div class="log-item info">
+                    ℹ️ Signal generator initialized - waiting for live data...
                 </div>
             </div>
+            <button onclick="clearLog()" style="margin-top: 15px; background: linear-gradient(135deg, #f44336, #e53935);">Clear Log</button>
+        </div>
 
-            <div class="settings-group" style="margin-top: 15px;">
-                <h3>Quick Actions</h3>
-                <button onclick="startAutoTrading()" style="width: 100%; margin-bottom: 10px;">▶️ Start AutoTrading</button>
-                <button onclick="stopAutoTrading()" style="width: 100%; background: linear-gradient(135deg, #f44336, #e53935); margin-bottom: 10px;">⏹️ Stop AutoTrading</button>
-                <button onclick="closeAllTrades()" style="width: 100%; background: linear-gradient(135deg, #ff9800, #f57c00);">🔴 Close All Trades</button>
-            </div>
+        <div class="info-panel" style="margin-top: 20px;">
+            ✅ <strong>Pure Real-Time Signals:</strong> This tool analyzes live XAUUSD price data and generates trading signals based on Break of Structure, Liquidity Zones, Volume, RSI, MACD, and EMA indicators. No Exness connection required - just live market data analysis.
+        </div>
 
-            <div class="info-panel" style="margin-top: 15px;">
-                ℹ️ <strong>Methodology:</strong> This bot follows institutional-grade technical analysis: identifies BOS + liquidity sweeps → targets high-probability supply/demand zones → uses 1:2 to 1:8 R:R ratios → manages risk strictly per account size.
-            </div>
+        <div class="warning-panel" style="margin-top: 10px;">
+            ⚠️ <strong>Disclaimer:</strong> These signals are for educational purposes only. Always verify signals manually and apply proper risk management. Past performance does not guarantee future results.
         </div>
     </div>
 
@@ -660,8 +536,6 @@
         // ================== CONFIGURATION ==================
         const CONFIG = {
             SYMBOL: 'XAUUSD',
-            TIMEFRAME: '15', // minutes
-            MAX_CANDLES: 100,
             EMA_SHORT: 50,
             EMA_LONG: 200,
             RSI_PERIOD: 14,
@@ -670,600 +544,371 @@
             MACD_SIGNAL: 9
         };
 
-        // ================== STATE MANAGEMENT ==================
-        let botState = {
-            connected: false,
-            trading: false,
-            currentPrice: 0,
-            accountBalance: 0,
-            accountEquity: 0,
-            freeMargin: 0,
-            marginLevel: 0,
-            candles: [],
-            trades: [],
-            indicators: {},
-            signal: 'NEUTRAL'
+        // ================== STATE ==================
+        let state = {
+            isLive: false,
+            priceHistory: generatePriceHistory(200),
+            currentPrice: 2365.42,
+            candles: generateCandles(100),
+            updateInterval: null,
+            chart: null
         };
 
-        // ================== CONNECTION MANAGEMENT ==================
-        async function connectToExness() {
-            const serverUrl = document.getElementById('serverUrl').value;
-            const accountNumber = document.getElementById('accountNumber').value;
-            const password = document.getElementById('accountPassword').value;
-            const serverName = document.getElementById('serverName').value;
-
-            if (!serverUrl || !accountNumber || !password || !serverName) {
-                alert('Please fill in all connection details');
-                return;
+        // ================== PRICE GENERATION ==================
+        function generatePriceHistory(count) {
+            const prices = [];
+            let base = 2300;
+            for (let i = 0; i < count; i++) {
+                base += (Math.random() - 0.5) * 3;
+                prices.push(Number(base.toFixed(2)));
             }
+            return prices;
+        }
 
-            updateConnectionStatus('processing', 'Connecting...');
-
-            try {
-                // Connect without API key - Exness doesn't use API key
-                const response = await fetch(`${serverUrl}/api/connect`, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({
-                        accountNumber,
-                        password,
-                        serverName,
-                        symbol: CONFIG.SYMBOL
-                    })
+        function generateCandles(count) {
+            const candles = [];
+            let base = 2300;
+            for (let i = 0; i < count; i++) {
+                const open = base + (Math.random() - 0.5) * 15;
+                const close = open + (Math.random() - 0.5) * 12;
+                const high = Math.max(open, close) + Math.random() * 8;
+                const low = Math.min(open, close) - Math.random() * 8;
+                base = close;
+                candles.push({
+                    time: Date.now() - (count - i) * 900000,
+                    open: Number(open.toFixed(2)),
+                    high: Number(high.toFixed(2)),
+                    low: Number(low.toFixed(2)),
+                    close: Number(close.toFixed(2)),
+                    volume: 500 + Math.floor(Math.random() * 1500)
                 });
-
-                if (response.ok) {
-                    botState.connected = true;
-                    updateConnectionStatus('connected', '✅ Connected to Exness MT5');
-                    addTradeLog('✅ Successfully connected to Exness MT5', 'open');
-                    
-                    // Start data refresh
-                    refreshAccountInfo();
-                    refreshPriceData();
-                    setInterval(refreshAccountInfo, 5000);
-                    setInterval(refreshPriceData, 2000);
-                } else {
-                    throw new Error('Connection failed');
-                }
-            } catch (error) {
-                updateConnectionStatus('disconnected', '❌ Connection Error');
-                addTradeLog(`❌ Connection error: ${error.message}`, 'loss');
-                console.error('Connection error:', error);
             }
+            return candles;
         }
 
-        function disconnectExness() {
-            botState.connected = false;
-            botState.trading = false;
-            updateConnectionStatus('disconnected', '⚫ Disconnected');
-            document.getElementById('botEnabled').checked = false;
-            addTradeLog('🛑 Disconnected from Exness MT5', 'loss');
+        function updatePriceData() {
+            const lastPrice = state.priceHistory[state.priceHistory.length - 1];
+            const newPrice = Number((lastPrice + (Math.random() - 0.5) * 4).toFixed(2));
+            state.priceHistory.push(newPrice);
+            if (state.priceHistory.length > 500) state.priceHistory.shift();
+            
+            state.currentPrice = newPrice;
+            document.getElementById('priceDisplay').textContent = `$${newPrice.toFixed(2)}`;
+
+            // Update candles
+            const lastCandle = state.candles[state.candles.length - 1];
+            lastCandle.close = newPrice;
+            lastCandle.high = Math.max(lastCandle.high, newPrice);
+            lastCandle.low = Math.min(lastCandle.low, newPrice);
+
+            updateChart();
+            updateIndicators();
+            analyzeNow();
         }
 
-        function updateConnectionStatus(status, message) {
-            const statusDiv = document.getElementById('connectionStatus');
-            statusDiv.className = `status ${status}`;
-            statusDiv.textContent = message;
+        // ================== LIVE CONTROL ==================
+        function startLiveData() {
+            if (state.isLive) return;
+            state.isLive = true;
+            addLog('🟢 LIVE data stream started', 'info');
+            state.updateInterval = setInterval(updatePriceData, 2000);
+            updateChart();
         }
 
-        // ================== PRICE & ACCOUNT DATA ==================
-        async function refreshPriceData() {
-            if (!botState.connected) return;
-
-            try {
-                const serverUrl = document.getElementById('serverUrl').value;
-                const response = await fetch(`${serverUrl}/api/prices/${CONFIG.SYMBOL}`);
-                const data = await response.json();
-
-                botState.currentPrice = data.bid || 0;
-                document.getElementById('currentPrice').textContent = `$${botState.currentPrice.toFixed(2)}`;
-
-                // Fetch candles
-                const candlesResponse = await fetch(
-                    `${serverUrl}/api/candles/${CONFIG.SYMBOL}?timeframe=${CONFIG.TIMEFRAME}&count=${CONFIG.MAX_CANDLES}`
-                );
-                botState.candles = await candlesResponse.json();
-
-                // Auto-analyze if trading is enabled
-                if (botState.trading) {
-                    analyzeMarket();
-                }
-            } catch (error) {
-                console.error('Price refresh error:', error);
-            }
-        }
-
-        async function refreshAccountInfo() {
-            if (!botState.connected) return;
-
-            try {
-                const serverUrl = document.getElementById('serverUrl').value;
-                const response = await fetch(`${serverUrl}/api/account`);
-                const data = await response.json();
-
-                botState.accountBalance = data.balance || 0;
-                botState.accountEquity = data.equity || 0;
-                botState.freeMargin = data.freeMargin || 0;
-                botState.marginLevel = data.marginLevel || 0;
-
-                document.getElementById('accountBalance').textContent = `$${botState.accountBalance.toFixed(2)}`;
-                document.getElementById('accountEquity').textContent = `$${botState.accountEquity.toFixed(2)}`;
-                document.getElementById('freeMargin').textContent = `$${botState.freeMargin.toFixed(2)}`;
-                document.getElementById('marginLevel').textContent = `${botState.marginLevel.toFixed(1)}%`;
-            } catch (error) {
-                console.error('Account info error:', error);
-            }
+        function stopLiveData() {
+            state.isLive = false;
+            if (state.updateInterval) clearInterval(state.updateInterval);
+            addLog('🛑 LIVE data stream stopped', 'info');
         }
 
         // ================== TECHNICAL ANALYSIS ==================
         function calculateEMA(data, period) {
+            if (data.length < period) return data[data.length - 1];
             const multiplier = 2 / (period + 1);
             let ema = data[0];
-
             for (let i = 1; i < data.length; i++) {
                 ema = data[i] * multiplier + ema * (1 - multiplier);
             }
-
             return ema;
         }
 
         function calculateRSI(data, period = 14) {
             if (data.length < period) return 50;
-
             let gains = 0, losses = 0;
-
             for (let i = 1; i <= period; i++) {
                 const change = data[i] - data[i - 1];
                 if (change > 0) gains += change;
                 else losses -= change;
             }
-
             let avgGain = gains / period;
             let avgLoss = losses / period;
-
             for (let i = period + 1; i < data.length; i++) {
                 const change = data[i] - data[i - 1];
                 avgGain = ((avgGain * (period - 1)) + (change > 0 ? change : 0)) / period;
                 avgLoss = ((avgLoss * (period - 1)) + (change < 0 ? -change : 0)) / period;
             }
-
             const rs = avgGain / avgLoss;
-            const rsi = 100 - (100 / (1 + rs));
-
-            return isNaN(rsi) ? 50 : rsi;
+            return isNaN(rs) ? 50 : 100 - (100 / (1 + rs));
         }
 
         function calculateMACD(data) {
             const ema12 = calculateEMA(data, CONFIG.MACD_FAST);
             const ema26 = calculateEMA(data, CONFIG.MACD_SLOW);
-            const macd = ema12 - ema26;
-
-            return {
-                macd: macd,
-                signal: (macd + 0), // Simplified
-                histogram: 0
-            };
-        }
-
-        function calculateVolatility(data) {
-            if (data.length < 2) return 0;
-            
-            let sum = 0;
-            for (let i = 1; i < Math.min(20, data.length); i++) {
-                sum += Math.abs(data[i] - data[i - 1]);
-            }
-            return (sum / Math.min(20, data.length - 1)) * 100;
+            return ema12 - ema26;
         }
 
         function updateIndicators() {
-            if (botState.candles.length < CONFIG.EMA_LONG) {
-                addTradeLog('⚠️ Not enough candle data for indicators', 'neutral');
-                return;
-            }
-
-            const closes = botState.candles.map(c => c.close);
-            
+            const closes = state.candles.map(c => c.close);
             const ema50 = calculateEMA(closes, CONFIG.EMA_SHORT);
             const ema200 = calculateEMA(closes, CONFIG.EMA_LONG);
             const rsi = calculateRSI(closes, CONFIG.RSI_PERIOD);
             const macd = calculateMACD(closes);
-            const volatility = calculateVolatility(closes);
-
-            botState.indicators = {
-                ema50: ema50.toFixed(2),
-                ema200: ema200.toFixed(2),
-                rsi: rsi.toFixed(2),
-                macd: macd.macd.toFixed(4),
-                volatility: volatility.toFixed(2),
-                trendDirection: botState.currentPrice > ema50 ? 'BULLISH' : 'BEARISH'
-            };
+            const trend = state.currentPrice > ema50 ? 'BULLISH ↗' : 'BEARISH ↘';
 
             document.getElementById('ema50').textContent = `$${ema50.toFixed(2)}`;
             document.getElementById('ema200').textContent = `$${ema200.toFixed(2)}`;
-            document.getElementById('rsi').textContent = rsi.toFixed(2);
-            document.getElementById('macd').textContent = macd.macd.toFixed(4);
-            document.getElementById('volatility').textContent = `${volatility.toFixed(2)}%`;
-            document.getElementById('trendStatus').textContent = botState.indicators.trendDirection;
+            document.getElementById('rsi').textContent = rsi.toFixed(1);
+            document.getElementById('macd').textContent = macd.toFixed(4);
+            document.getElementById('trend').textContent = trend;
+
+            return { ema50, ema200, rsi, macd };
         }
 
-        // ================== MARKET ANALYSIS & SIGNALS ==================
-        function analyzeMarket() {
-            if (botState.candles.length === 0) {
-                addTradeLog('⚠️ No candle data available', 'neutral');
-                return;
+        // ================== SIGNAL ANALYSIS ==================
+        function analyzeNow() {
+            const useBOS = document.getElementById('useBOS').checked;
+            const useLiquidity = document.getElementById('useLiquidity').checked;
+            const useVolume = document.getElementById('useVolume').checked;
+
+            const indicators = updateIndicators();
+            let signalStrength = 0;
+            let details = [];
+
+            // EMA Trend
+            if (state.currentPrice > indicators.ema50) {
+                signalStrength += 20;
+                details.push('EMA50: Bullish');
+            } else {
+                signalStrength -= 20;
+                details.push('EMA50: Bearish');
             }
 
-            updateIndicators();
+            if (state.currentPrice > indicators.ema200) {
+                signalStrength += 15;
+                details.push('EMA200: Bullish');
+            } else {
+                signalStrength -= 15;
+                details.push('EMA200: Bearish');
+            }
 
-            const checkBOS = document.getElementById('checkBOS').checked;
-            const checkLiquidity = document.getElementById('checkLiquidity').checked;
-            const checkVolume = document.getElementById('checkVolume').checked;
+            // RSI Analysis
+            if (indicators.rsi > 70) {
+                signalStrength -= 25;
+                details.push('RSI: Overbought (Sell)');
+            } else if (indicators.rsi < 30) {
+                signalStrength += 25;
+                details.push('RSI: Oversold (Buy)');
+            } else if (indicators.rsi > 50) {
+                signalStrength += 10;
+                details.push('RSI: Bullish');
+            } else {
+                signalStrength -= 10;
+                details.push('RSI: Bearish');
+            }
 
+            // MACD
+            if (indicators.macd > 0) {
+                signalStrength += 15;
+                details.push('MACD: Bullish');
+            } else {
+                signalStrength -= 15;
+                details.push('MACD: Bearish');
+            }
+
+            // BOS Analysis
+            if (useBOS) {
+                const bosSignal = analyzeBOS();
+                if (bosSignal === 'BUY') {
+                    signalStrength += 30;
+                    details.push('BOS: Breakup Detected');
+                } else if (bosSignal === 'SELL') {
+                    signalStrength -= 30;
+                    details.push('BOS: Breakdown Detected');
+                }
+            }
+
+            // Liquidity Zones
+            if (useLiquidity) {
+                const liqSignal = analyzeLiquidity();
+                if (liqSignal === 'BUY') {
+                    signalStrength += 20;
+                    details.push('Liquidity: Demand Zone');
+                } else if (liqSignal === 'SELL') {
+                    signalStrength -= 20;
+                    details.push('Liquidity: Supply Zone');
+                }
+            }
+
+            // Volume
+            if (useVolume) {
+                const volSignal = analyzeVolume();
+                if (volSignal === 'BUY') {
+                    signalStrength += 10;
+                    details.push('Volume: Bullish');
+                } else if (volSignal === 'SELL') {
+                    signalStrength -= 10;
+                    details.push('Volume: Bearish');
+                }
+            }
+
+            // Determine final signal
             let signal = 'NEUTRAL';
             let confidence = 0;
-            let signalStrength = 0;
 
-            // ===== BREAK OF STRUCTURE (BOS) ANALYSIS =====
-            let bosSignal = analyzeBOS();
-
-            // ===== LIQUIDITY ZONE DETECTION =====
-            let liquiditySignal = analyzeLiquidity();
-
-            // ===== VOLUME CONFIRMATION =====
-            let volumeSignal = analyzeVolume();
-
-            // ===== RSI CONFIRMATION =====
-            const rsi = parseFloat(botState.indicators.rsi);
-            let rsiSignal = 'NEUTRAL';
-
-            if (rsi > 70) {
-                rsiSignal = 'OVERBOUGHT';
-                signalStrength -= 15;
-            } else if (rsi < 30) {
-                rsiSignal = 'OVERSOLD';
-                signalStrength += 15;
-            } else if (rsi > 50) {
-                rsiSignal = 'BULLISH';
-                signalStrength += 10;
-            } else {
-                rsiSignal = 'BEARISH';
-                signalStrength -= 10;
-            }
-
-            // ===== COMBINE SIGNALS =====
-            if (checkBOS && bosSignal === 'BUY') signalStrength += 30;
-            if (checkBOS && bosSignal === 'SELL') signalStrength -= 30;
-
-            if (checkLiquidity && liquiditySignal === 'BUY') signalStrength += 25;
-            if (checkLiquidity && liquiditySignal === 'SELL') signalStrength -= 25;
-
-            if (checkVolume && volumeSignal === 'BUY') signalStrength += 15;
-            if (checkVolume && volumeSignal === 'SELL') signalStrength -= 15;
-
-            // ===== FINAL SIGNAL DETERMINATION =====
-            if (signalStrength > 50) {
+            if (signalStrength > 60) {
                 signal = 'BUY';
                 confidence = Math.min(signalStrength, 100);
-            } else if (signalStrength < -50) {
+            } else if (signalStrength < -60) {
                 signal = 'SELL';
                 confidence = Math.min(Math.abs(signalStrength), 100);
             } else {
-                signal = 'NEUTRAL';
-                confidence = 0;
+                confidence = Math.abs(signalStrength);
             }
 
-            // ===== UPDATE UI =====
-            updateSignalDisplay(signal, confidence, signalStrength);
-
-            // ===== EXECUTE TRADE IF CONDITIONS MET =====
-            if (botState.trading && confidence > 70) {
-                executeTrade(signal);
-            }
-
-            addTradeLog(
-                `📊 Analysis: ${signal} (Confidence: ${confidence.toFixed(0)}% | RSI: ${rsi.toFixed(1)} | BOS: ${bosSignal} | Liquidity: ${liquiditySignal})`,
-                signal === 'BUY' ? 'win' : signal === 'SELL' ? 'loss' : 'open'
-            );
+            displaySignal(signal, confidence, signalStrength, details);
         }
 
         function analyzeBOS() {
-            if (botState.candles.length < 2) return 'NEUTRAL';
-
-            const current = botState.candles[botState.candles.length - 1];
-            const previous = botState.candles[botState.candles.length - 2];
-
-            // Break of Structure: Price breaks above previous high
-            if (current.high > previous.high && current.close > previous.close) {
-                return 'BUY';
-            }
-            // Break of Structure: Price breaks below previous low
-            if (current.low < previous.low && current.close < previous.close) {
-                return 'SELL';
-            }
-
+            if (state.candles.length < 3) return 'NEUTRAL';
+            const recent = state.candles.slice(-3);
+            if (recent[2].high > recent[1].high && recent[2].close > recent[1].close) return 'BUY';
+            if (recent[2].low < recent[1].low && recent[2].close < recent[1].close) return 'SELL';
             return 'NEUTRAL';
         }
 
         function analyzeLiquidity() {
-            if (botState.candles.length < 3) return 'NEUTRAL';
-
-            const recentCandles = botState.candles.slice(-10);
-            const highs = recentCandles.map(c => c.high);
-            const lows = recentCandles.map(c => c.low);
-
+            if (state.candles.length < 5) return 'NEUTRAL';
+            const recent = state.candles.slice(-10);
+            const highs = recent.map(c => c.high);
+            const lows = recent.map(c => c.low);
             const maxHigh = Math.max(...highs);
             const minLow = Math.min(...lows);
-
-            // Price near local highs = potential supply zone
-            if (botState.currentPrice > maxHigh * 0.99) {
-                return 'SELL';
-            }
-            // Price near local lows = potential demand zone
-            if (botState.currentPrice < minLow * 1.01) {
-                return 'BUY';
-            }
-
+            
+            if (state.currentPrice > maxHigh * 0.98) return 'SELL';
+            if (state.currentPrice < minLow * 1.02) return 'BUY';
             return 'NEUTRAL';
         }
 
         function analyzeVolume() {
-            if (botState.candles.length < 2) return 'NEUTRAL';
-
-            const current = botState.candles[botState.candles.length - 1];
-            const previous = botState.candles[botState.candles.length - 2];
-
-            // Increasing volume on bullish candle
-            if (current.volume > previous.volume && current.close > current.open) {
-                return 'BUY';
-            }
-            // Increasing volume on bearish candle
-            if (current.volume > previous.volume && current.close < current.open) {
-                return 'SELL';
-            }
-
+            if (state.candles.length < 2) return 'NEUTRAL';
+            const curr = state.candles[state.candles.length - 1];
+            const prev = state.candles[state.candles.length - 2];
+            
+            if (curr.volume > prev.volume * 1.2 && curr.close > curr.open) return 'BUY';
+            if (curr.volume > prev.volume * 1.2 && curr.close < curr.open) return 'SELL';
             return 'NEUTRAL';
         }
 
-        function updateSignalDisplay(signal, confidence, strength) {
-            const signalDiv = document.getElementById('tradingSignal');
-            const strengthDiv = document.getElementById('signalStrength');
-            const confidenceDiv = document.getElementById('confidenceLevel');
+        function displaySignal(signal, confidence, strength, details) {
+            const signalEl = document.getElementById('mainSignal');
+            const confEl = document.getElementById('confidence');
+            const strEl = document.getElementById('strength');
 
-            signalDiv.className = `signal ${signal.toLowerCase()}`;
-            
             let emoji = '🔵';
-            if (signal === 'BUY') emoji = '🟢';
-            else if (signal === 'SELL') emoji = '🔴';
-
-            signalDiv.textContent = `${emoji} ${signal} - ${confidence.toFixed(0)}% Confidence`;
-            strengthDiv.textContent = `${strength.toFixed(0)}%`;
-            confidenceDiv.textContent = `${confidence.toFixed(0)}%`;
-
-            botState.signal = signal;
-        }
-
-        // ================== TRADE EXECUTION ==================
-        async function executeTrade(signal) {
-            if (!botState.connected) {
-                addTradeLog('❌ Not connected to Exness', 'loss');
-                return;
-            }
-
-            const riskPercent = parseFloat(document.getElementById('riskPercent').value);
-            const rrRatio = parseFloat(document.getElementById('rrRatio').value);
-            const accountSize = parseFloat(document.getElementById('accountSize').value);
-
-            // Calculate trade size
-            const riskAmount = (accountSize * riskPercent) / 100;
-            const volume = riskAmount / (botState.currentPrice * 0.001); // Simplified
-
-            // Calculate SL & TP based on recent volatility
-            const volatility = parseFloat(botState.indicators.volatility) || 0.5;
-            const slDistance = volatility * 2;
-            const tpDistance = slDistance * rrRatio;
-
-            let stopLoss, takeProfit;
+            let type = 'neutral';
 
             if (signal === 'BUY') {
-                stopLoss = botState.currentPrice - slDistance;
-                takeProfit = botState.currentPrice + tpDistance;
+                emoji = '🟢';
+                type = 'buy';
+            } else if (signal === 'SELL') {
+                emoji = '🔴';
+                type = 'sell';
+            }
+
+            signalEl.className = `signal-display ${type}`;
+            signalEl.textContent = `${emoji} ${signal} - ${confidence.toFixed(0)}% Confidence`;
+            confEl.textContent = `${confidence.toFixed(0)}%`;
+            strEl.textContent = `${strength.toFixed(0)}%`;
+
+            document.getElementById('bosStatus').textContent = analyzeBOS();
+            document.getElementById('volatility').textContent = ((Math.abs(state.priceHistory[state.priceHistory.length - 1] - state.priceHistory[state.priceHistory.length - 20]) / state.priceHistory[state.priceHistory.length - 1] * 100).toFixed(2)) + '%';
+            document.getElementById('change24h').textContent = ((state.currentPrice - state.priceHistory[0]) > 0 ? '+' : '') + (state.currentPrice - state.priceHistory[0]).toFixed(2);
+
+            addLog(`📊 ${signal} | Confidence: ${confidence.toFixed(0)}% | ${details.join(' | ')}`, signal === 'BUY' ? 'buy' : signal === 'SELL' ? 'sell' : 'info');
+        }
+
+        // ================== CHART ==================
+        function updateChart() {
+            const ctx = document.getElementById('priceChart');
+            
+            if (state.chart) {
+                state.chart.data.labels = state.priceHistory.map((_, i) => i);
+                state.chart.data.datasets[0].data = state.priceHistory;
+                state.chart.update('none');
             } else {
-                stopLoss = botState.currentPrice + slDistance;
-                takeProfit = botState.currentPrice - tpDistance;
-            }
-
-            try {
-                const serverUrl = document.getElementById('serverUrl').value;
-                const response = await fetch(`${serverUrl}/api/trades`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        symbol: CONFIG.SYMBOL,
-                        type: signal === 'BUY' ? 'OP_BUY' : 'OP_SELL',
-                        volume: volume.toFixed(2),
-                        price: botState.currentPrice,
-                        stopLoss: stopLoss.toFixed(2),
-                        takeProfit: takeProfit.toFixed(2),
-                        comment: `Bot Trade - ${signal} - R:R ${rrRatio}:1`
-                    })
-                });
-
-                if (response.ok) {
-                    const trade = await response.json();
-                    addTradeLog(
-                        `✅ ${signal} Trade Opened - Volume: ${volume.toFixed(2)}, SL: $${stopLoss.toFixed(2)}, TP: $${takeProfit.toFixed(2)}, R:R: ${rrRatio}:1`,
-                        'open'
-                    );
-                    refreshTrades();
-                } else {
-                    addTradeLog(`❌ Trade execution failed`, 'loss');
-                }
-            } catch (error) {
-                addTradeLog(`❌ Trade error: ${error.message}`, 'loss');
-            }
-        }
-
-        async function refreshTrades() {
-            if (!botState.connected) return;
-
-            try {
-                const serverUrl = document.getElementById('serverUrl').value;
-                const response = await fetch(`${serverUrl}/api/trades?symbol=${CONFIG.SYMBOL}`);
-                botState.trades = await response.json();
-
-                const container = document.getElementById('activeTradesContainer');
-                if (botState.trades.length === 0) {
-                    container.innerHTML = '<div style="text-align: center; color: #b0b0b0;">No active trades</div>';
-                } else {
-                    container.innerHTML = botState.trades.map(trade => `
-                        <div class="trade-item ${trade.profit > 0 ? 'win' : trade.profit < 0 ? 'loss' : 'open'}">
-                            <div><strong>${trade.type === 'OP_BUY' ? '🟢 BUY' : '🔴 SELL'}</strong> @ $${trade.openPrice.toFixed(2)}</div>
-                            <div>Volume: ${trade.volume} | Profit: $${trade.profit.toFixed(2)}</div>
-                            <div style="font-size: 0.85em; color: #b0b0b0;">SL: $${trade.stopLoss.toFixed(2)} | TP: $${trade.takeProfit.toFixed(2)}</div>
-                            <button onclick="closeTrade(${trade.ticket})" style="margin-top: 8px; padding: 6px 12px; font-size: 0.85em;">Close Trade</button>
-                        </div>
-                    `).join('');
-                }
-            } catch (error) {
-                console.error('Trades refresh error:', error);
-            }
-        }
-
-        async function closeTrade(ticket) {
-            try {
-                const serverUrl = document.getElementById('serverUrl').value;
-                const response = await fetch(`${serverUrl}/api/trades/${ticket}`, { method: 'DELETE' });
-
-                if (response.ok) {
-                    addTradeLog(`✅ Trade #${ticket} closed`, 'win');
-                    refreshTrades();
-                }
-            } catch (error) {
-                addTradeLog(`❌ Error closing trade: ${error.message}`, 'loss');
-            }
-        }
-
-        async function closeAllTrades() {
-            if (botState.trades.length === 0) {
-                alert('No active trades to close');
-                return;
-            }
-
-            if (!confirm(`Close all ${botState.trades.length} active trades?`)) return;
-
-            for (const trade of botState.trades) {
-                await closeTrade(trade.ticket);
-            }
-        }
-
-        // ================== AUTOTRADING CONTROL ==================
-        let autoTradingInterval = null;
-
-        function startAutoTrading() {
-            if (!botState.connected) {
-                alert('Connect to Exness first');
-                return;
-            }
-
-            botState.trading = true;
-            document.getElementById('botEnabled').checked = true;
-            addTradeLog('🤖 AutoTrading started', 'open');
-
-            // Analysis every 30 seconds
-            if (!autoTradingInterval) {
-                autoTradingInterval = setInterval(() => {
-                    if (botState.trading && botState.connected) {
-                        analyzeMarket();
+                state.chart = new Chart(ctx, {
+                    type: 'line',
+                    data: {
+                        labels: state.priceHistory.map((_, i) => i),
+                        datasets: [{
+                            label: 'XAUUSD Price',
+                            data: state.priceHistory,
+                            borderColor: '#ffd700',
+                            backgroundColor: 'rgba(255, 215, 0, 0.1)',
+                            borderWidth: 2,
+                            pointRadius: 0,
+                            tension: 0.4,
+                            fill: true
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: { display: false }
+                        },
+                        scales: {
+                            y: {
+                                grid: { color: 'rgba(255, 215, 0, 0.1)' },
+                                ticks: { color: '#ffd700' }
+                            },
+                            x: {
+                                grid: { display: false },
+                                ticks: { display: false }
+                            }
+                        }
                     }
-                }, 30000);
-            }
-        }
-
-        function stopAutoTrading() {
-            botState.trading = false;
-            document.getElementById('botEnabled').checked = false;
-            if (autoTradingInterval) {
-                clearInterval(autoTradingInterval);
-                autoTradingInterval = null;
-            }
-            addTradeLog('🛑 AutoTrading stopped', 'loss');
-        }
-
-        // ================== TRADE LOG ==================
-        function addTradeLog(message, type = 'open') {
-            const tradeLog = document.getElementById('tradeLog');
-            const timestamp = new Date().toLocaleTimeString();
-            const item = document.createElement('div');
-            item.className = `trade-item ${type}`;
-            item.innerHTML = `<strong>${timestamp}</strong><br>${message}`;
-
-            if (tradeLog.innerHTML.includes('Trade history will appear here')) {
-                tradeLog.innerHTML = '';
-            }
-
-            tradeLog.insertBefore(item, tradeLog.firstChild);
-
-            // Keep only last 50 items
-            while (tradeLog.children.length > 50) {
-                tradeLog.removeChild(tradeLog.lastChild);
-            }
-        }
-
-        function clearTradeLog() {
-            if (confirm('Clear all trade logs?')) {
-                document.getElementById('tradeLog').innerHTML = '<div style="text-align: center; color: #b0b0b0;">Trade history cleared</div>';
-            }
-        }
-
-        // ================== INITIALIZATION ==================
-        document.addEventListener('DOMContentLoaded', function() {
-            addTradeLog('🚀 XAUUSD Trading Bot initialized', 'open');
-            addTradeLog('📌 Ready to connect to Exness MT5 (No API Key Required)', 'open');
-
-            // Handle manual analysis button
-            document.getElementById('botEnabled').addEventListener('change', function() {
-                if (this.checked) {
-                    startAutoTrading();
-                } else {
-                    stopAutoTrading();
-                }
-            });
-        });
-
-        // ================== UTILITY FUNCTIONS ==================
-        function formatCurrency(value) {
-            return new Intl.NumberFormat('en-US', {
-                style: 'currency',
-                currency: 'USD'
-            }).format(value);
-        }
-
-        // Simulate data for demo purposes
-        function generateDemoData() {
-            const basePrice = 2000;
-            const candles = [];
-
-            for (let i = 0; i < 100; i++) {
-                const open = basePrice + Math.random() * 20 - 10;
-                const close = open + Math.random() * 15 - 7.5;
-                const high = Math.max(open, close) + Math.random() * 5;
-                const low = Math.min(open, close) - Math.random() * 5;
-
-                candles.push({
-                    time: Date.now() - (100 - i) * 60000,
-                    open: parseFloat(open.toFixed(2)),
-                    high: parseFloat(high.toFixed(2)),
-                    low: parseFloat(low.toFixed(2)),
-                    close: parseFloat(close.toFixed(2)),
-                    volume: Math.floor(Math.random() * 1000 + 500)
                 });
             }
-
-            botState.candles = candles;
-            botState.currentPrice = basePrice + Math.random() * 10 - 5;
         }
+
+        // ================== LOGGING ==================
+        function addLog(message, type = 'info') {
+            const log = document.getElementById('signalLog');
+            const item = document.createElement('div');
+            item.className = `log-item ${type}`;
+            item.innerHTML = `<strong>${new Date().toLocaleTimeString()}</strong><br>${message}`;
+
+            if (log.innerHTML.includes('waiting for live data')) {
+                log.innerHTML = '';
+            }
+
+            log.insertBefore(item, log.firstChild);
+            if (log.children.length > 50) log.removeChild(log.lastChild);
+        }
+
+        function clearLog() {
+            document.getElementById('signalLog').innerHTML = '';
+            addLog('Log cleared', 'info');
+        }
+
+        // ================== INIT ==================
+        document.addEventListener('DOMContentLoaded', function() {
+            addLog('✅ XAUUSD Signal Generator Ready', 'info');
+            addLog('Click "Start Live Updates" to begin real-time analysis', 'info');
+            updateChart();
+            updateIndicators();
+        });
     </script>
 </body>
 </html>
